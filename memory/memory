@@ -53,11 +53,8 @@ END {
 	}
 
 	# full text
-	if (percent == "true" ) {
-		printf("%.1fG/%.1fG (%.f%%)\n", used, total, pct)
-	} else {
-		printf("%.1fG/%.1fG\n", used, total)
-	}
+	printf("%.1fG\n", free)
+
 	# short text
 	printf("%.f%%\n", pct)
 
