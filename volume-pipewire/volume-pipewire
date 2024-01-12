@@ -11,15 +11,15 @@ AUDIO_MED_SYMBOL=${AUDIO_MED_SYMBOL:-'  '}
 AUDIO_LOW_THRESH=${AUDIO_LOW_THRESH:-0}
 AUDIO_LOW_SYMBOL=${AUDIO_LOW_SYMBOL:-'  '}
 
-AUDIO_MUTED_SYMBOL=${AUDIO_MUTED_SYMBOL:-'  '}
+AUDIO_MUTED_SYMBOL=${AUDIO_MUTED_SYMBOL:-''}
 
 AUDIO_DELTA=${AUDIO_DELTA:-5}
 
 DEFAULT_COLOR=${DEFAULT_COLOR:-"#ffffff"}
 MUTED_COLOR=${MUTED_COLOR:-"#a0a0a0"}
 
-LONG_FORMAT=${LONG_FORMAT:-'${SYMB} ${VOL}% [${INDEX}:${NAME}]'}
-SHORT_FORMAT=${SHORT_FORMAT:-'${SYMB} ${VOL}% [${INDEX}]'}
+LONG_FORMAT=${LONG_FORMAT:-'${SYMB} ${VOL}% [${NAME}]'}
+SHORT_FORMAT=${SHORT_FORMAT:-'${SYMB} ${VOL}%'}
 USE_ALSA_NAME=${USE_ALSA_NAME:-0}
 USE_DESCRIPTION=${USE_DESCRIPTION:-0}
 
@@ -52,7 +52,7 @@ while getopts F:Sf:adH:M:L:X:T:t:C:c:i:m:s:h opt; do
         [-m mixer] [-s scontrol] [-h]
 Options:
 -F, -f\tOutput format (-F long format, -f short format) to use, with exposed variables:
-\${SYMB}, \${VOL}, \${INDEX}, \${NAME}
+\${SYMB}, \${VOL}, \${NAME}
 -S\tSubscribe to volume events (requires persistent block, always uses long format)
 -a\tUse ALSA name if possible
 -d\tUse device description instead of name if possible
@@ -115,17 +115,16 @@ case "$BLOCK_BUTTON" in
 esac
 
 function print_format {
-    echo "$1" | envsubst '${SYMB}${VOL}${INDEX}${NAME}'
+    echo "$1" | envsubst '${SYMB}${VOL}${NAME}'
 }
 
 function print_block {
-    ACTIVE=$(pactl list sinks  | grep "State\: RUNNING" -B4 -A55 | grep "Name:\|Volume: \(front-left\|mono\)\|Mute:\|api.alsa.pcm.card = \|node.nick = ")
-    for Name in NAME MUTED VOL INDEX NICK; do
+    ACTIVE=$(pactl list sinks  | grep "State\: RUNNING" -B4 -A55 | grep "Name:\|Volume: \(front-left\|mono\)\|Mute:\|node.nick = ")
+    for Name in NAME MUTED VOL NICK; do
         read $Name
     done < <(echo "$ACTIVE")
-    INDEX=$(echo "$INDEX"  | grep -o '".*"' | sed 's/"//g')
     VOL=$(echo "$VOL" | grep -o "[0-9]*%" | head -1 )
-    VOL="${VOL%?}"
+#    VOL="${VOL%?}"
     NAME=$(echo "$NICK" | grep -o '".*"' | sed 's/"//g')
 
     if [[ $USE_ALSA_NAME == 1 ]] ; then
@@ -148,20 +147,21 @@ sed 's/.*= "\(.*\)".*/\1/')
     else
         SYMB=$AUDIO_MUTED_SYMBOL
         COLOR=$MUTED_COLOR
+        VOL="mute"
     fi
 
     if [[ $ACTIVE = "" ]] ; then
-        echo "Sound inactive"
+        echo "off"
         COLOR='#222225'
-    fi
-
-    if [[ $SUBSCRIBE == 1 ]] ; then
-        print_format "$LONG_FORMAT"
     else
-        print_format "$LONG_FORMAT"
-        print_format "$SHORT_FORMAT"
-        echo "$COLOR"
+      if [[ $SUBSCRIBE == 1 ]] ; then
+          print_format "$LONG_FORMAT"
+      else
+          print_format "$LONG_FORMAT"
+          print_format "$SHORT_FORMAT"
+      fi
     fi
+    #echo "$COLOR"
 }
 
 print_block
